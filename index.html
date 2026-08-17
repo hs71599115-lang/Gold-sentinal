@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0f17" />
+  <title>Gold Sentinel</title>
+  <style>
+    :root { --bg:#0b0f17; --card:#141b26; --muted:#8ea0b8; --text:#f5f7fb; --good:#34d399; --bad:#fb7185; --warn:#fbbf24; --accent:#e5b94b; }
+    *{box-sizing:border-box} body{margin:0;background:linear-gradient(180deg,#0a0e14,#101722);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}
+    .wrap{max-width:760px;margin:0 auto;padding:18px 16px 48px}
+    .top{display:flex;align-items:center;justify-content:space-between;margin:8px 0 18px}
+    .brand{font-weight:800;font-size:24px;letter-spacing:.2px}.badge{font-size:12px;padding:7px 10px;border-radius:999px;background:#1d2633;color:#b7c4d4}
+    .hero{background:radial-gradient(circle at top right,#2a2312,#151b24 45%);border:1px solid #263041;border-radius:24px;padding:20px;box-shadow:0 18px 50px rgba(0,0,0,.25)}
+    .symbol{color:var(--muted);font-size:13px}.price{font-size:42px;font-weight:800;margin:4px 0 8px}.sub{display:flex;gap:8px;flex-wrap:wrap;color:var(--muted);font-size:13px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}.card{background:var(--card);border:1px solid #263041;border-radius:20px;padding:16px}
+    .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}.value{font-size:19px;font-weight:750;margin-top:6px}
+    .signal{margin-top:14px;background:var(--card);border:1px solid #263041;border-radius:20px;padding:18px}
+    .signal-head{display:flex;align-items:center;justify-content:space-between}.pill{font-weight:800;padding:8px 12px;border-radius:999px;background:#253044}
+    .buy{background:rgba(52,211,153,.15);color:var(--good)}.sell{background:rgba(251,113,133,.15);color:var(--bad)}.wait{background:rgba(251,191,36,.14);color:var(--warn)}
+    .rows{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}.row{padding:12px;border-radius:14px;background:#0f151e}.row span{display:block;color:var(--muted);font-size:11px}.row b{display:block;margin-top:4px;font-size:16px}
+    button{width:100%;margin-top:12px;padding:14px 16px;border:0;border-radius:16px;background:var(--accent);color:#17130a;font-size:16px;font-weight:800}
+    button.secondary{background:#1d2633;color:var(--text)}
+    .note{margin-top:16px;color:var(--muted);font-size:12px;line-height:1.5}
+    @media(max-width:520px){.grid,.rows{grid-template-columns:1fr 1fr}.price{font-size:36px}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><div class="brand">Gold Sentinel</div><div id="mode" class="badge">CONNECTING</div></div>
+
+  <div class="hero">
+    <div class="symbol">XAU/USD • GOLD</div>
+    <div id="price" class="price">--</div>
+    <div class="sub"><span id="tf">5min scanner</span><span>•</span><span id="status">Connecting to live feed…</span></div>
+  </div>
+
+  <div class="grid">
+    <div class="card"><div class="label">Trend</div><div id="trend" class="value">--</div></div>
+    <div class="card"><div class="label">Momentum</div><div id="momentum" class="value">--</div></div>
+    <div class="card"><div class="label">Volatility</div><div id="vol" class="value">--</div></div>
+    <div class="card"><div class="label">Setup Score</div><div id="score" class="value">--</div></div>
+  </div>
+
+  <div class="signal">
+    <div class="signal-head">
+      <div><div class="label">Latest Decision</div><div id="decision" class="value">Waiting for live analysis</div></div>
+      <div id="pill" class="pill wait">WAIT</div>
+    </div>
+    <div class="rows">
+      <div class="row"><span>ENTRY</span><b id="entry">--</b></div>
+      <div class="row"><span>STOP LOSS</span><b id="sl">--</b></div>
+      <div class="row"><span>TAKE PROFIT 1</span><b id="tp1">--</b></div>
+      <div class="row"><span>TAKE PROFIT 2</span><b id="tp2">--</b></div>
+    </div>
+    <button id="notifyBtn">Enable iPhone Notifications</button>
+    <button class="secondary" id="notifTestBtn">Send Test Notification</button>
+    <div id="notifStatus" class="note" style="margin-top:10px">Notifications: not enabled yet.</div>
+  </div>
+
+  <div class="note">
+    LIVE XAU/USD analysis from the Gold Sentinel backend. Alerts only — this app does not place trades automatically and no setup guarantees profit.
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let lastSignalKey = "";
+
+function fmt(n){
+  return (typeof n==="number" && Number.isFinite(n)) ? n.toFixed(2) : "--";
+}
+
+function momentumFromRSI(rsi){
+  if(typeof rsi!=="number") return "--";
+  if(rsi>=60) return "Strong ↑";
+  if(rsi>=52) return "Bullish";
+  if(rsi<=40) return "Strong ↓";
+  if(rsi<=48) return "Bearish";
+  return "Neutral";
+}
+
+function renderLive(s){
+  $("mode").textContent = s.mode==="LIVE" ? "LIVE FEED" : (s.mode || "CONNECTING");
+  $("price").textContent = fmt(s.last_price);
+  $("tf").textContent = (s.interval || "5min") + " scanner";
+  $("trend").textContent = s.trend || "--";
+  $("momentum").textContent = momentumFromRSI(s.rsi);
+  $("vol").textContent = typeof s.atr==="number" ? s.atr.toFixed(3) : "--";
+  $("score").textContent = typeof s.score==="number" ? s.score+"/100" : "--";
+
+  if(s.error){
+    $("status").textContent = "Feed error";
+    $("decision").textContent = s.error;
+    $("pill").textContent = "ERROR";
+    $("pill").className = "pill sell";
+    clearLevels();
+    return;
+  }
+
+  $("status").textContent = s.healthy ? "Watching automatically" : "Connecting…";
+
+  const sig=s.signal;
+  if(sig && (sig.side==="BUY" || sig.side==="SELL")){
+    const side=sig.side;
+    $("decision").textContent = "Gold "+side+" setup";
+    $("pill").textContent = side;
+    $("pill").className = "pill "+(side==="BUY"?"buy":"sell");
+    $("entry").textContent = fmt(sig.entry);
+    $("sl").textContent = fmt(sig.stop_loss);
+    $("tp1").textContent = fmt(sig.take_profit_1);
+    $("tp2").textContent = fmt(sig.take_profit_2);
+
+    const key=[side,sig.entry,sig.stop_loss,sig.take_profit_1,sig.take_profit_2].join("|");
+    if(key!==lastSignalKey){
+      lastSignalKey=key;
+      sendSignalNotification(sig);
+    }
+  }else{
+    $("decision").textContent = s.decision==="WAIT" ? "No high-quality setup" : (s.decision || "Waiting");
+    $("pill").textContent = s.decision || "WAIT";
+    $("pill").className = "pill wait";
+    clearLevels();
+  }
+}
+
+function clearLevels(){
+  ["entry","sl","tp1","tp2"].forEach(id=>$(id).textContent="--");
+}
+
+async function refreshStatus(){
+  try{
+    const r=await fetch("/status?ts="+Date.now(),{cache:"no-store"});
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const s=await r.json();
+    renderLive(s);
+  }catch(e){
+    $("mode").textContent="OFFLINE";
+    $("status").textContent="Could not read live feed";
+    $("decision").textContent="Reconnecting…";
+  }
+}
+
+async function showNotification(title, body){
+  if(!("Notification" in window) || Notification.permission!=="granted") return false;
+  try{
+    if("serviceWorker" in navigator){
+      const reg=await navigator.serviceWorker.ready;
+      if(reg && reg.showNotification){
+        await reg.showNotification(title,{body,tag:"gold-sentinel-alert",renotify:true});
+        return true;
+      }
+    }
+    new Notification(title,{body});
+    return true;
+  }catch(e){ return false; }
+}
+
+async function sendSignalNotification(sig){
+  const body=`${sig.side} Gold | Entry ${fmt(sig.entry)} | SL ${fmt(sig.stop_loss)} | TP1 ${fmt(sig.take_profit_1)} | TP2 ${fmt(sig.take_profit_2)} | Score ${sig.score}/100`;
+  await showNotification("Gold Sentinel — "+sig.side+" setup",body);
+}
+
+function updateNotificationStatus(){
+  const el=$("notifStatus");
+  if(!("Notification" in window)){
+    el.textContent="On iPhone, add Gold Sentinel to the Home Screen and open it there to enable web notifications.";
+    return;
+  }
+  if(Notification.permission==="granted"){
+    el.textContent="Notifications: ENABLED ✅";
+    $("notifyBtn").textContent="Notifications Enabled";
+  }else if(Notification.permission==="denied"){
+    el.textContent="Notifications: BLOCKED.";
+  }else{
+    el.textContent="Notifications: not enabled yet.";
+  }
+}
+
+$("notifyBtn").onclick=async()=>{
+  if(!("Notification" in window)){
+    alert("On iPhone, add Gold Sentinel to your Home Screen first, then open it from the Home Screen and enable notifications.");
+    return;
+  }
+  const perm=await Notification.requestPermission();
+  updateNotificationStatus();
+  if(perm==="granted"){
+    await showNotification("Gold Sentinel is ready","Notifications are enabled on this device.");
+  }
+};
+
+$("notifTestBtn").onclick=async()=>{
+  if(!("Notification" in window) || Notification.permission!=="granted"){
+    alert("Enable notifications first.");
+    return;
+  }
+  const ok=await showNotification("Gold Sentinel — Test Alert","Notifications are working correctly on this device.");
+  if(!ok) alert("The test notification could not be displayed.");
+};
+
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("/OneSignalSDKWorker.js").catch(()=>{});
+}
+
+updateNotificationStatus();
+refreshStatus();
+setInterval(refreshStatus,5000);
+</script>
+</body>
+</html>

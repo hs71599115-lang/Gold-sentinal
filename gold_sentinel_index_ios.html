@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0f17">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gold Sentinel">
+<title>Gold Sentinel</title>
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+window.OneSignalDeferred = window.OneSignalDeferred || [];
+OneSignalDeferred.push(async function(OneSignal) {
+  await OneSignal.init({ appId: "0d39d004-4424-4d71-8b4f-f2139188d94b" });
+});
+</script>
+<style>
+:root{--bg:#0b0f17;--card:#141b26;--muted:#8ea0b8;--text:#f5f7fb;--good:#34d399;--bad:#fb7185;--warn:#fbbf24;--accent:#e5b94b}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(180deg,#0a0e14,#101722);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}
+.wrap{max-width:760px;margin:0 auto;padding:calc(18px + env(safe-area-inset-top)) 16px calc(48px + env(safe-area-inset-bottom))}
+.top{display:flex;align-items:center;justify-content:space-between;margin:8px 0 18px}.brand{font-weight:800;font-size:24px}.badge{font-size:12px;padding:7px 10px;border-radius:999px;background:#1d2633;color:#b7c4d4}
+.hero,.card,.signal{background:#141b26;border:1px solid #263041}.hero{border-radius:24px;padding:20px}.card,.signal{border-radius:20px;padding:16px}
+.symbol,.label,.sub,.note{color:var(--muted)}.price{font-size:42px;font-weight:800;margin:4px 0 8px}.sub{font-size:13px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.label{font-size:12px;text-transform:uppercase;letter-spacing:.08em}.value{font-size:19px;font-weight:750;margin-top:6px}.signal{margin-top:14px}.signal-head{display:flex;align-items:center;justify-content:space-between}
+.pill{font-weight:800;padding:8px 12px;border-radius:999px}.buy{background:rgba(52,211,153,.15);color:var(--good)}.sell{background:rgba(251,113,133,.15);color:var(--bad)}.wait{background:rgba(251,191,36,.14);color:var(--warn)}
+.rows{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}.row{padding:12px;border-radius:14px;background:#0f151e}.row span{display:block;color:var(--muted);font-size:11px}.row b{display:block;margin-top:4px;font-size:16px}
+button{width:100%;margin-top:12px;padding:14px 16px;border:0;border-radius:16px;background:var(--accent);color:#17130a;font-size:16px;font-weight:800}.secondary{background:#1d2633;color:var(--text)}
+.note{margin-top:12px;font-size:12px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><div class="brand">Gold Sentinel</div><div id="mode" class="badge">CONNECTING</div></div>
+  <div class="hero">
+    <div class="symbol">XAU/USD • GOLD</div>
+    <div id="price" class="price">--</div>
+    <div class="sub"><span id="tf">5min scanner</span> • <span id="status">Connecting…</span></div>
+  </div>
+  <div class="grid">
+    <div class="card"><div class="label">Trend</div><div id="trend" class="value">--</div></div>
+    <div class="card"><div class="label">Momentum</div><div id="momentum" class="value">--</div></div>
+    <div class="card"><div class="label">Volatility</div><div id="vol" class="value">--</div></div>
+    <div class="card"><div class="label">Setup Score</div><div id="score" class="value">--</div></div>
+  </div>
+  <div class="signal">
+    <div class="signal-head">
+      <div><div class="label">Latest Decision</div><div id="decision" class="value">Waiting</div></div>
+      <div id="pill" class="pill wait">WAIT</div>
+    </div>
+    <div class="rows">
+      <div class="row"><span>ENTRY</span><b id="entry">--</b></div>
+      <div class="row"><span>STOP LOSS</span><b id="sl">--</b></div>
+      <div class="row"><span>TAKE PROFIT 1</span><b id="tp1">--</b></div>
+      <div class="row"><span>TAKE PROFIT 2</span><b id="tp2">--</b></div>
+    </div>
+    <button id="notifyBtn">Enable iPhone Notifications</button>
+    <button id="notifTestBtn" class="secondary">Send Test Notification</button>
+    <div id="notifStatus" class="note">Notifications: not enabled yet.</div>
+  </div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const fmt=n=>typeof n==="number"?n.toFixed(2):"--";
+function standalone(){return window.matchMedia("(display-mode: standalone)").matches||window.navigator.standalone===true}
+function momentum(r){if(typeof r!=="number")return"--";if(r>=60)return"Strong ↑";if(r>=52)return"Bullish";if(r<=40)return"Strong ↓";if(r<=48)return"Bearish";return"Neutral"}
+function clearLvls(){["entry","sl","tp1","tp2"].forEach(id=>$(id).textContent="--")}
+function render(s){
+ $("mode").textContent=s.mode==="LIVE"?"LIVE FEED":(s.mode||"CONNECTING");
+ $("price").textContent=fmt(s.last_price);$("tf").textContent=(s.interval||"5min")+" scanner";$("trend").textContent=s.trend||"--";$("momentum").textContent=momentum(s.rsi);$("vol").textContent=typeof s.atr==="number"?s.atr.toFixed(3):"--";$("score").textContent=typeof s.score==="number"?s.score+"/100":"--";$("status").textContent=s.healthy?"Watching automatically":"Connecting…";
+ if(s.signal){const x=s.signal;$("decision").textContent="Gold "+x.side+" setup";$("pill").textContent=x.side;$("pill").className="pill "+(x.side==="BUY"?"buy":"sell");$("entry").textContent=fmt(x.entry);$("sl").textContent=fmt(x.stop_loss);$("tp1").textContent=fmt(x.take_profit_1);$("tp2").textContent=fmt(x.take_profit_2)}
+ else{$("decision").textContent="No high-quality setup";$("pill").textContent="WAIT";$("pill").className="pill wait";clearLvls()}
+}
+async function refresh(){try{let r=await fetch("/status?ts="+Date.now(),{cache:"no-store"});render(await r.json())}catch(e){$("mode").textContent="OFFLINE";$("status").textContent="Reconnecting…"}}
+function updateNotif(){
+ let e=$("notifStatus");
+ if(!standalone()){e.textContent="Open Gold Sentinel from its Home Screen icon before enabling notifications.";return}
+ if(!("Notification" in window)){e.textContent="Notifications are not available in this browser.";return}
+ if(Notification.permission==="granted"){e.textContent="Notifications: ENABLED ✅";$("notifyBtn").textContent="Notifications Enabled"}
+ else if(Notification.permission==="denied"){e.textContent="Notifications are blocked in iPhone settings."}
+ else e.textContent="Notifications: ready to enable."
+}
+$("notifyBtn").onclick=()=>{
+ if(!standalone()){alert("Open Gold Sentinel from the Home Screen icon first.");return}
+ window.OneSignalDeferred=window.OneSignalDeferred||[];
+ OneSignalDeferred.push(async function(OneSignal){await OneSignal.Notifications.requestPermission();updateNotif()});
+};
+$("notifTestBtn").onclick=()=>alert("After OneSignal shows this iPhone as subscribed, we will send the test push.");
+updateNotif();refresh();setInterval(refresh,5000);
+</script>
+</body>
+</html>
